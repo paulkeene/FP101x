@@ -1,4 +1,4 @@
-module Countdown where
+module MyCountdown where
 
 import Control.Monad (replicateM)
 import Data.List
