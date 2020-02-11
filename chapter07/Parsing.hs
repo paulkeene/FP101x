@@ -1,3 +1,5 @@
+{-# Language DeriveFunctor #-}
+
 module Parsing where
 
 import Data.Char
@@ -8,25 +10,29 @@ infixr 5 +++
 -- The monad of parsers
 --------------------
 
-newtype Parser a = P (String -> [(a, String)])
+newtype Parser a = P (String -> [(a, String)]) deriving (Functor)
+
+instance Applicative Parser where
+  pure a = P (\x -> [(a, x)])
 
 instance Monad Parser where
-  return v = P (\inp -> [(v,inp)])
+  return = pure
   p >>= f = P (\inp -> case parse p inp of
                          [(v, out)] -> parse (f v) out
                          [] -> [])
 
-instance MonadPlus Parser where
-  mzero = P (\inp -> [])
-  p `mplus` q = P (\inp -> case parse p inp of
+instance Semigroup (Parser a) where
+  p <> q = P (\inp -> case parse p inp of
                              [] -> parse q inp
                              [(v,out)] -> [(v,out)])
+instance Monoid (Parser a) where
+  mempty = P (const [])
 
 -- Basic parsers
 -------------
 
 failure :: Parser a
-failure = mzero
+failure = mempty
 
 item :: Parser Char
 item = P (\inp -> case inp of
@@ -40,7 +46,7 @@ parse (P p) inp = p inp
 ------
 
 (+++) :: Parser a -> Parser a -> Parser a
-p +++ q = p `mplus` q
+(+++) = (<>)
 
 -- Derived primitives
 ------------------
